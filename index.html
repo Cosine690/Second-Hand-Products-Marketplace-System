@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeHub - Advanced Marketplace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #f2f4f5; font-family: Arial, Helvetica, sans-serif; }
+        .header-bg { background-color: #f7f8f9; border-bottom: 1px solid #d8dfe0; position: sticky; top: 0; z-index: 1000; }
+        .brand-logo { font-weight: 900; font-size: 2rem; color: #002f34; text-decoration: none; cursor: pointer; }
+        .item-search { border: 2px solid #002f34; border-radius: 4px 0 0 4px; padding: 8px 12px; width: 100%; outline: none; }
+        .search-btn { background-color: #002f34; color: white; border: 2px solid #002f34; border-radius: 0 4px 4px 0; padding: 8px 20px; }
+        .sell-btn { background-color: white; border: 5px solid transparent; border-image: linear-gradient(to right, #23e5db, #ffce32, #3a77ff) 1; border-radius: 24px; color: #002f34; font-weight: bold; padding: 6px 20px; cursor: pointer; background-clip: padding-box; }
+        .category-nav { background-color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 10px 0; margin-bottom: 20px; }
+        .category-link { color: #002f34; text-decoration: none; font-size: 0.9rem; margin-right: 20px; cursor: pointer; }
+        
+        .product-card { background: white; border: 1px solid #d8dfe0; border-radius: 4px; padding: 10px; height: 100%; position: relative; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; }
+        .product-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); transform: translateY(-2px); }
+        .product-img { width: 100%; height: 160px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; }
+        .price { font-size: 1.25rem; font-weight: bold; color: #002f34; margin-bottom: 4px; }
+        .title { color: #406367; font-size: 1rem; margin-bottom: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .footer-info { font-size: 0.75rem; color: #707a7c; display: flex; justify-content: space-between; margin-top: auto; }
+        .heart-icon { position: absolute; top: 20px; right: 20px; background: white; border-radius: 50%; padding: 5px 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.2); z-index: 10; cursor: pointer; }
+        
+        .post-ad-card { background: white; border: 1px solid #d8dfe0; border-radius: 8px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .sold-out-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.85); z-index: 5; display: flex; align-items: center; justify-content: center; border-radius: 4px; flex-direction: column; pointer-events: none; }
+        .sold-badge { background: #dc3545; color: white; padding: 8px 20px; font-weight: 900; font-size: 1.2rem; transform: rotate(-15deg); border: 3px solid #dc3545; border-radius: 4px; letter-spacing: 2px; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .delivery-status { background: #002f34; color: white; font-size: 0.8rem; padding: 6px 12px; border-radius: 4px; font-weight: bold; border: 1px solid #002f34; }
+        .action-btn-container { position: relative; z-index: 10; margin-top: 10px; }
+        
+        .upi-modal-header { background: #ff7e1d; color: white; }
+        .qr-container { background: white; padding: 15px; border-radius: 10px; display: inline-block; border: 2px solid #e0e0e0; }
+        .pwd-req { font-size: 0.75rem; color: #dc3545; margin-bottom: 2px; transition: color 0.3s; }
+        .pwd-req.valid { color: #28a745; }
+
+        .track-modal-bg { background-color: #f1f3f6; }
+        .track-header { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: white; border-bottom: 1px solid #eee; }
+        .track-badge-ontime { background-color: #e6f0ff; color: #0066ff; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 4px; }
+        .vertical-timeline { position: relative; padding-left: 20px; margin-top: 15px; }
+        .vertical-timeline::before { content: ''; position: absolute; top: 5px; left: 0; height: calc(100% - 10px); width: 2px; background-color: #28a745; }
+        .v-step { position: relative; margin-bottom: 25px; }
+        .v-step::before { content: ''; position: absolute; left: -24px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background-color: #28a745; border: 2px solid white; box-shadow: 0 0 0 2px #28a745; }
+        .v-step.pending::before { background-color: #ccc; box-shadow: 0 0 0 2px #ccc; }
+        .v-step.pending ~ .vertical-timeline::before { background-color: #ccc; } 
+        .invoice-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; }
+        .text-green { color: #28a745; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header class="header-bg py-3">
+        <div class="container d-flex align-items-center gap-3">
+            <span class="brand-logo me-2" onclick="filterByCategory('All')">TradeHub</span>
+            <div class="d-flex flex-grow-1">
+                <input type="text" id="searchInput" class="item-search" placeholder="Find Cars, Mobile Phones and more...">
+                <button class="search-btn"><i class="fas fa-search fs-5"></i></button>
+            </div>
+            
+            <div class="d-none d-lg-flex align-items-center gap-4 ms-3 fw-bold" style="color: #002f34;">
+                <span id="loginBtnText" class="text-decoration-underline" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#authModal">Login / Register</span>
+                <div id="loggedInNav" style="display: none;" class="align-items-center gap-3">
+                    
+                    <span id="adminPanelLink" style="display: none; color: #dc3545; cursor: pointer; border: 1px solid #dc3545; padding: 4px 10px; border-radius: 4px;" onclick="showAdminDashboard()"><i class="fas fa-shield-alt"></i> Admin Panel</span>
+
+                    <span style="color: #3a77ff; cursor: pointer;" onclick="showDashboard('favorites')"><i class="fas fa-heart"></i> My Favorites</span>
+                    <span style="color: #3a77ff; cursor: pointer;" onclick="showDashboard('myAds')"><i class="fas fa-box"></i> My Ads</span>
+                    <span class="ms-2"><i class="fas fa-user-circle"></i> <span id="welcomeUserName"></span></span>
+                    <span style="color: #dc3545; cursor: pointer; font-size: 0.85rem;" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</span>
+                </div>
+            </div>
+            <button id="sellBtn" class="sell-btn ms-2 d-flex align-items-center gap-1"><i class="fas fa-plus"></i> SELL</button>
+        </div>
+    </header>
+
+    <nav class="category-nav d-none d-md-block">
+        <div class="container d-flex overflow-auto">
+            <span class="fw-bold me-3" style="color: #002f34; cursor: pointer;" onclick="filterByCategory('All')">All Categories</span>
+            <span class="category-link" onclick="filterByCategory('Vehicles')">Vehicles</span>
+            <span class="category-link" onclick="filterByCategory('Electronics')">Electronics</span>
+            <span class="category-link" onclick="filterByCategory('Furniture')">Furniture</span>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <div id="postAdSection" class="post-ad-card mb-5" style="display: none;">
+            <h4 class="mb-4" style="color: #002f34; font-weight: bold;">Post Your Ad</h4>
+            <form id="adForm" class="row g-3">
+                <div class="col-md-6"><label class="form-label fw-bold">Ad Title</label><input type="text" class="form-control" id="adTitle" required></div>
+                <div class="col-md-3"><label class="form-label fw-bold">Price (₹)</label><input type="number" class="form-control" id="adPrice" required></div>
+                <div class="col-md-3"><label class="form-label fw-bold">Category</label>
+                    <select class="form-select" id="adCategory" required>
+                        <option value="Electronics">Electronics</option><option value="Vehicles">Vehicles</option><option value="Furniture">Furniture</option>
+                    </select>
+                </div>
+                <div class="col-md-4"><label class="form-label fw-bold">Location</label><input type="text" class="form-control" id="adLocation" required></div>
+                <div class="col-md-4"><label class="form-label fw-bold text-success"><i class="fas fa-mobile-alt"></i> Your UPI ID</label><input type="text" class="form-control" id="adUpi" placeholder="username@okhdfcbank" required></div>
+                <div class="col-md-4"><label class="form-label fw-bold">Image URL</label><input type="url" class="form-control" id="adImage" placeholder="Direct link to image (.jpg, .png)"></div>
+                <div class="col-12"><label class="form-label fw-bold">Description</label><textarea class="form-control" id="adDescription" rows="2" required></textarea></div>
+                <div class="col-12 text-end"><button type="submit" class="btn fw-bold text-white px-5" style="background-color: #002f34;">Post Now</button></div>
+            </form>
+        </div>
+
+        <h3 class="mb-4" id="sectionTitle" style="color: #002f34; font-size: 1.5rem;">Fresh recommendations</h3>
+        <div class="row g-3" id="productGrid"></div>
+    </div>
+
+    <div class="modal fade" id="authModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0"><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body px-5 pb-5">
+                    <div id="loginView">
+                        <h3 class="fw-bold mb-4 text-center" style="color: #002f34;">Login to TradeHub</h3>
+                        <form id="loginForm">
+                            <div class="mb-3"><label class="form-label fw-bold">Email</label><input type="email" class="form-control" id="loginEmail" required></div>
+                            <div class="mb-4"><label class="form-label fw-bold">Password</label><input type="password" class="form-control" id="loginPassword" required></div>
+                            <button type="submit" class="btn w-100 fw-bold py-2 text-white mb-3" style="background-color: #002f34;">Login</button>
+                        </form>
+                        <p class="text-center text-muted">Don't have an account? <a href="#" onclick="toggleAuthView('register')" class="fw-bold text-decoration-none" style="color: #3a77ff;">Register here</a></p>
+                    </div>
+                    <div id="registerView" style="display: none;">
+                        <h3 class="fw-bold mb-4 text-center" style="color: #002f34;">Create an Account</h3>
+                        <form id="registerForm">
+                            <div class="row g-2 mb-3">
+                                <div class="col-6"><label class="form-label fw-bold">Full Name</label><input type="text" class="form-control" id="regName" required></div>
+                                <div class="col-6"><label class="form-label fw-bold">Phone No.</label><input type="text" class="form-control" id="regPhone" required></div>
+                            </div>
+                            <div class="mb-3"><label class="form-label fw-bold">Email</label><input type="email" class="form-control" id="regEmail" required placeholder="example@domain.com"></div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Default Delivery Address</label>
+                                <textarea class="form-control" id="regAddress" rows="2" required placeholder="Hostel Block, Room No., Campus Name"></textarea>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Password</label>
+                                <input type="password" class="form-control" id="regPassword" required oninput="checkPasswordStrength()">
+                                <div class="mt-2 bg-light p-2 rounded border">
+                                    <div class="pwd-req" id="reqLen"><i class="fas fa-times-circle"></i> At least 8 characters</div>
+                                    <div class="pwd-req" id="reqUp"><i class="fas fa-times-circle"></i> One uppercase letter</div>
+                                    <div class="pwd-req" id="reqNum"><i class="fas fa-times-circle"></i> One number</div>
+                                    <div class="pwd-req" id="reqSpc"><i class="fas fa-times-circle"></i> One special char (@$!%*?&)</div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn w-100 fw-bold py-2 text-white mb-3" style="background-color: #3a77ff;">Register Account</button>
+                        </form>
+                        <p class="text-center text-muted">Already have an account? <a href="#" onclick="toggleAuthView('login')" class="fw-bold text-decoration-none" style="color: #002f34;">Login here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="productModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Product Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-7"><img id="modalImage" src="" class="img-fluid rounded mb-3" style="width: 100%; max-height: 400px; object-fit: cover;"></div>
+                        <div class="col-md-5">
+                            <h2 id="modalPrice" class="fw-bold" style="color: #002f34;"></h2>
+                            <h5 id="modalName" class="text-muted mb-4"></h5>
+                            <div class="p-3 bg-light rounded mb-3"><h6 class="fw-bold">Description</h6><p id="modalDescription" class="small mb-0"></p></div>
+                            <div class="d-flex justify-content-between text-muted small mb-4">
+                                <span id="modalCategory"><i class="fas fa-tag"></i></span>
+                                <span id="modalLocation"><i class="fas fa-map-marker-alt"></i></span>
+                            </div>
+                            <button id="buyBtn" class="btn w-100 fw-bold text-white py-2" style="background-color: #ff7e1d; display: none;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/1200px-UPI-Logo-vector.svg.png" style="height: 15px; margin-right: 5px;"> Pay with BHIM UPI</button>
+                            <button id="loginToBuyBtn" class="btn w-100 fw-bold text-white py-2" style="background-color: #002f34; display: none;">Login to Buy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="upiModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header upi-modal-header border-0">
+                    <h5 class="modal-title fw-bold">Scan & Pay</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center bg-light">
+                    <h5 class="fw-bold mb-1" id="upiItemName"></h5>
+                    <h3 class="fw-bold text-success mb-3" id="upiItemPrice"></h3>
+                    <div class="qr-container mb-3 shadow-sm"><img id="upiQRCode" src="" style="width: 200px; height: 200px;"></div>
+                    <p class="small fw-bold text-muted mb-4">Paying to: <span class="text-dark" id="upiSellerDetails"></span></p>
+                    
+                    <div class="bg-white border rounded p-3 mb-4 text-start shadow-sm">
+                        <span class="fw-bold d-block mb-1 text-primary"><i class="fas fa-truck"></i> Delivery Address:</span>
+                        <span class="small text-muted" id="deliveryAddressConfirm"></span>
+                    </div>
+
+                    <div class="input-group mb-3"><input type="text" class="form-control" placeholder="Enter Transaction ID (UTRN)" id="utrnInput"></div>
+                    <button id="confirmUpiBtn" class="btn w-100 fw-bold text-white py-2" style="background-color: #ff7e1d;">Verify & Complete Purchase</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="trackingModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content track-modal-bg">
+                <div class="track-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="fas fa-arrow-left" style="cursor: pointer;" data-bs-dismiss="modal"></i>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Track Order</h6>
+                            <small class="text-muted" id="trackOrderId"></small>
+                        </div>
+                    </div>
+                    <div class="text-primary fw-bold small">Need Help? <i class="fas fa-share-alt ms-2 text-dark"></i></div>
+                </div>
+
+                <div class="modal-body p-0">
+                    <div class="bg-white p-3 mb-2">
+                        <p class="text-muted small mb-1">Estimated delivery</p>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <h4 class="fw-bold mb-0" id="trackEstDate"></h4>
+                            <span class="track-badge-ontime">ON TIME</span>
+                        </div>
+                        <p class="small text-primary fw-bold mb-0">Your order is on track and will be delivered to you soon</p>
+                    </div>
+
+                    <div class="bg-white p-3 mb-2">
+                        <div class="row">
+                            <div class="col-3 text-end pt-1">
+                                <div class="fw-bold small" id="trackSideDate"></div>
+                            </div>
+                            <div class="col-9">
+                                <div class="vertical-timeline" id="trackingTimelineHTML"></div>
+                            </div>
+                        </div>
+                        <a href="#" class="text-decoration-none fw-bold small text-success">View all Updates</a>
+                    </div>
+
+                    <div class="bg-white p-3 mb-2">
+                        <h5 class="fw-bold mb-3">Shipment Details</h5>
+                        <div class="row text-muted small fw-bold mb-2 border-bottom pb-2">
+                            <div class="col-8">ITEM NAME</div>
+                            <div class="col-2 text-center">QTY</div>
+                            <div class="col-2 text-end">MRP</div>
+                        </div>
+                        <div class="row small fw-bold">
+                            <div class="col-8" id="trackInvoiceItem"></div>
+                            <div class="col-2 text-center">1</div>
+                            <div class="col-2 text-end" id="trackInvoiceMRP"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-3 mb-2">
+                        <h5 class="fw-bold mb-3">Deliver To</h5>
+                        <h6 class="fw-bold mb-1" id="trackDeliverName"></h6>
+                        <p class="small text-muted mb-2" id="trackDeliverAddress"></p>
+                        <p class="small text-muted mb-0">Phone: <span id="trackDeliverPhone"></span></p>
+                    </div>
+
+                    <div class="bg-white p-3">
+                        <h5 class="fw-bold mb-3">Payment Details</h5>
+                        <div class="invoice-row"><span>MRP Total</span> <span id="payMrp"></span></div>
+                        <div class="invoice-row"><span>Delivery Charges</span> <span class="text-green">FREE</span></div>
+                        <div class="invoice-row"><span>Packaging Charges</span> <span id="payPack"></span></div>
+                        <div class="invoice-row border-bottom pb-2 mb-2"><span>GST On Fees <i class="fas fa-info-circle small text-muted"></i></span> <span id="payGst"></span></div>
+                        <div class="invoice-row text-green p-2 mb-2" style="background: #e8f5e9; border-radius: 4px;">
+                            <span>Discount</span> <span id="payDiscount"></span>
+                        </div>
+                        <div class="invoice-row text-muted mt-3"><span>Total Payable Amount</span> <span id="payTotal1"></span></div>
+                        <div class="invoice-row text-muted"><span>Payment method</span> <span>UPI</span></div>
+                        <div class="invoice-row fw-bold mt-2 pt-2 border-top"><span>Amount Paid in INR</span> <span id="payTotal2"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="updateDeliveryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0" style="background: #ffc107; color: black;">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-truck"></i> Update Delivery Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p>Update the current delivery status for <b><span id="updateItemName"></span></b>.</p>
+                    <select class="form-select mb-4" id="deliveryStatusSelect">
+                        <option value="Order Placed">Order Placed</option>
+                        <option value="Order Billed and Packed">Order Billed and Packed</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Out for Delivery">Out for Delivery</option>
+                        <option value="Delivered">Delivered</option>
+                    </select>
+                    <button id="saveDeliveryBtn" class="btn w-100 fw-bold text-dark" style="background-color: #ffc107;">Save Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentUser = null;
+        let products = []; 
+        let filteredProducts = [];
+        let currentView = 'All'; 
+        
+        const grid = document.getElementById('productGrid');
+        const authModal = new bootstrap.Modal(document.getElementById('authModal'));
+        const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+        const upiModal = new bootstrap.Modal(document.getElementById('upiModal'));
+        const trackingModal = new bootstrap.Modal(document.getElementById('trackingModal'));
+        const updateDeliveryModal = new bootstrap.Modal(document.getElementById('updateDeliveryModal'));
+
+        // --- FETCH & RENDER ---
+        async function fetchProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products`);
+                products = await response.json();
+                
+                if(currentView === 'Favorites') showDashboard('favorites');
+                else if(currentView === 'MyAds') showDashboard('myAds');
+                else if(currentView === 'Admin') showAdminDashboard();
+                else filterByCategory('All');
+            } catch (error) { console.error("Backend error:", error); }
+        }
+
+        function renderProducts(dataToRender) {
+            grid.innerHTML = ''; 
+            if(dataToRender.length === 0) {
+                grid.innerHTML = '<div class="col-12 text-center py-5 text-muted"><h4>No items found</h4></div>';
+                return;
+            }
+
+            dataToRender.forEach(product => {
+                let isFav = currentUser && currentUser.favorites.includes(product._id);
+                let heartClass = isFav ? 'fas text-danger' : 'far text-dark';
+                
+                let isOwner = currentUser && currentUser.id === product.sellerId;
+                let isBuyer = currentUser && currentUser.id === product.buyerId;
+                let isAdmin = currentUser && currentUser.role === 'admin';
+
+                // MASTER DELETE: Owners can delete unsold items. Admins can delete EVERYTHING (including sold items) to clean the DB.
+                let canDelete = (isOwner && product.status !== "Sold") || isAdmin;
+                let deleteHTML = canDelete 
+                    ? `<button class="btn btn-sm btn-danger position-absolute" style="top: 10px; left: 10px; z-index: 20;" onclick="event.stopPropagation(); deleteProduct('${product._id}')"><i class="fas fa-trash"></i></button>` : '';
+
+                let soldOverlay = product.status === "Sold" 
+                    ? `<div class="sold-out-overlay">
+                        <div class="sold-badge">SOLD OUT</div>
+                        <div class="delivery-status mt-2"><i class="fas fa-box"></i> ${product.deliveryStatus}</div>
+                       </div>` 
+                    : '';
+                    
+                let clickAction = product.status === "Sold" ? '' : `onclick="openDetails('${product._id}')"`;
+
+                let actionButtons = '';
+                if (product.status === "Sold") {
+                    if (isBuyer) {
+                        actionButtons = `<div class="action-btn-container"><button class="btn btn-sm w-100 fw-bold" style="background: #28a745; color: white;" onclick="event.stopPropagation(); openTracking('${product._id}')"><i class="fas fa-map-marker-alt"></i> Track Order</button></div>`;
+                    } else if (isOwner) {
+                        actionButtons = `<div class="action-btn-container"><button class="btn btn-sm w-100 fw-bold" style="background: #ffc107; color: black;" onclick="event.stopPropagation(); openUpdateDelivery('${product._id}')"><i class="fas fa-truck"></i> Manage Delivery</button></div>`;
+                    }
+                }
+
+                grid.innerHTML += `
+                    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                        <div class="product-card pb-3" ${clickAction}>
+                            ${soldOverlay}
+                            ${deleteHTML}
+                            <i class="${heartClass} fa-heart heart-icon" style="background: white; border-radius: 50%; padding: 5px 8px;" onclick="event.stopPropagation(); toggleFavorite('${product._id}')"></i>
+                            <img src="${product.image}" class="product-img" style="${product.status === 'Sold' ? 'filter: grayscale(100%);' : ''}">
+                            <div class="price">${product.price}</div>
+                            <div class="title">${product.title}</div>
+                            <div class="footer-info mb-2">
+                                <span class="text-truncate" style="max-width: 70%;">${product.location}</span>
+                                <span>${product.date}</span>
+                            </div>
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        const trackingStages = ["Order Placed", "Order Billed and Packed", "Shipped", "Out for Delivery", "Delivered"];
+
+        window.openTracking = function(id) {
+            const p = products.find(prod => prod._id === id);
+            if(p && p.paymentDetails) {
+                document.getElementById('trackOrderId').innerText = `(#${p.orderId})`;
+                document.getElementById('trackEstDate').innerText = p.estimatedDeliveryStr;
+                
+                let sideDate = p.checkoutDateStr ? p.checkoutDateStr.split(',')[0] + '<br>' + p.checkoutDateStr.split(',')[1].trim().split(' ')[0] + ' ' + p.checkoutDateStr.split(' ')[2] : '';
+                document.getElementById('trackSideDate').innerHTML = sideDate;
+
+                let currentStageIndex = trackingStages.indexOf(p.deliveryStatus);
+                if (currentStageIndex === -1) currentStageIndex = 0;
+
+                let timelineHTML = '';
+                trackingStages.forEach((stage, index) => {
+                    if(index > 2 && index > currentStageIndex) return; 
+                    
+                    let statusClass = index <= currentStageIndex ? '' : 'pending';
+                    let desc = index === 0 ? `Order confirmed! Your order will arrive by ${p.estimatedDeliveryStr}` : `Expected delivery: ${p.estimatedDeliveryStr}`;
+                    if(stage === "Delivered" && index === currentStageIndex) desc = "Package has been delivered.";
+
+                    timelineHTML += `
+                        <div class="v-step ${statusClass}">
+                            <div class="fw-bold" style="color: #333;">${stage}</div>
+                            <div class="small text-muted">${desc}</div>
+                        </div>
+                    `;
+                });
+                document.getElementById('trackingTimelineHTML').innerHTML = timelineHTML;
+
+                document.getElementById('trackInvoiceItem').innerText = p.title;
+                document.getElementById('trackInvoiceMRP').innerText = `₹${p.paymentDetails.mrp}`;
+                document.getElementById('trackDeliverName').innerText = p.buyerName;
+                document.getElementById('trackDeliverAddress').innerText = p.buyerAddress;
+                document.getElementById('trackDeliverPhone').innerText = p.buyerPhone;
+                document.getElementById('payMrp').innerText = `₹${p.paymentDetails.mrp}`;
+                document.getElementById('payPack').innerText = `₹${p.paymentDetails.packaging}`;
+                document.getElementById('payGst').innerText = `₹${p.paymentDetails.gst}`;
+                document.getElementById('payDiscount').innerText = `-₹${p.paymentDetails.discount}`;
+                document.getElementById('payTotal1').innerText = `₹${p.paymentDetails.total}`;
+                document.getElementById('payTotal2').innerText = `₹${p.paymentDetails.total}`;
+
+                trackingModal.show();
+            }
+        }
+
+        window.openUpdateDelivery = function(id) {
+            const p = products.find(prod => prod._id === id);
+            if(p) {
+                document.getElementById('updateItemName').innerText = p.title;
+                document.getElementById('deliveryStatusSelect').value = trackingStages.includes(p.deliveryStatus) ? p.deliveryStatus : "Order Placed";
+                
+                document.getElementById('saveDeliveryBtn').onclick = async () => {
+                    const newStatus = document.getElementById('deliveryStatusSelect').value;
+                    try {
+                        await fetch(`${API_URL}/products/${p._id}/delivery`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus })
+                        });
+                        updateDeliveryModal.hide();
+                        
+                        if(newStatus === "Delivered") {
+                            alert("Status updated to Delivered! This product will be automatically archived and removed from the platform in 1 minute.");
+                            setTimeout(() => { fetchProducts(); }, 61000);
+                        } else {
+                            fetchProducts(); 
+                        }
+
+                    } catch (err) { console.error(err); }
+                };
+                updateDeliveryModal.show();
+            }
+        }
+
+        window.checkPasswordStrength = function() {
+            const pwd = document.getElementById('regPassword').value;
+            const toggleClass = (element, condition) => {
+                if(condition) { element.classList.add('valid'); element.innerHTML = '<i class="fas fa-check-circle"></i> ' + element.innerText; } 
+                else { element.classList.remove('valid'); element.innerHTML = '<i class="fas fa-times-circle"></i> ' + element.innerText; }
+            };
+            toggleClass(document.getElementById('reqLen'), pwd.length >= 8);
+            toggleClass(document.getElementById('reqUp'), /[A-Z]/.test(pwd));
+            toggleClass(document.getElementById('reqNum'), /\d/.test(pwd));
+            toggleClass(document.getElementById('reqSpc'), /[@$!%*?&]/.test(pwd));
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = { 
+                name: document.getElementById('regName').value, 
+                email: document.getElementById('regEmail').value, 
+                password: document.getElementById('regPassword').value,
+                phone: document.getElementById('regPhone').value, 
+                address: document.getElementById('regAddress').value 
+            };
+            try {
+                const response = await fetch(`${API_URL}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await response.json();
+                if (response.ok) { 
+                    alert('Registration successful! Please log in.'); 
+                    document.getElementById('registerForm').reset();
+                    toggleAuthView('login'); 
+                } else { alert(data.message); }
+            } catch (err) { console.error(err); }
+        });
+
+        window.toggleAuthView = function(view) {
+            document.getElementById('loginView').style.display = view === 'login' ? 'block' : 'none';
+            document.getElementById('registerView').style.display = view === 'register' ? 'block' : 'none';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = { email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value };
+            try {
+                const response = await fetch(`${API_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await response.json();
+                if (response.ok) { 
+                    currentUser = data.user; 
+                    document.getElementById('loginBtnText').style.display = 'none';
+                    document.getElementById('welcomeUserName').innerText = currentUser.name;
+                    document.getElementById('loggedInNav').style.display = 'flex';
+                    
+                    // NEW: Show Admin Panel button ONLY if user is an admin
+                    document.getElementById('adminPanelLink').style.display = currentUser.role === 'admin' ? 'block' : 'none';
+                    
+                    authModal.hide();
+                    renderProducts(filteredProducts); 
+                } else { alert(data.message); }
+            } catch (err) { console.error(err); }
+        });
+
+        window.logout = function() {
+            currentUser = null;
+            document.getElementById('loginBtnText').style.display = 'block';
+            document.getElementById('loggedInNav').style.display = 'none';
+            document.getElementById('adminPanelLink').style.display = 'none';
+            filterByCategory('All'); 
+        }
+
+        async function toggleFavorite(productId) {
+            if (!currentUser) return authModal.show(); 
+            try {
+                const response = await fetch(`${API_URL}/users/${currentUser.id}/favorites`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId }) });
+                const data = await response.json();
+                currentUser.favorites = data.favorites; 
+                if(currentView === 'Favorites') showDashboard('favorites'); else renderProducts(filteredProducts);
+            } catch (err) { console.error(err); }
+        }
+
+        window.showDashboard = function(type) {
+            if (!currentUser) return;
+            if (type === 'favorites') {
+                currentView = 'Favorites';
+                document.getElementById('sectionTitle').innerText = 'My Favorites';
+                filteredProducts = products.filter(p => currentUser.favorites.includes(p._id));
+            } else if (type === 'myAds') {
+                currentView = 'MyAds';
+                document.getElementById('sectionTitle').innerText = 'My Active Ads';
+                filteredProducts = products.filter(p => p.sellerId === currentUser.id);
+            }
+            renderProducts(filteredProducts);
+        }
+
+        // NEW: Admin Dashboard Logic
+        window.showAdminDashboard = function() {
+            if (!currentUser || currentUser.role !== 'admin') return;
+            currentView = 'Admin';
+            document.getElementById('sectionTitle').innerText = 'Admin Panel - Manage Sold Products';
+            // Filters grid to ONLY show items that have been sold, allowing Admin to delete them easily
+            filteredProducts = products.filter(p => p.status === 'Sold');
+            renderProducts(filteredProducts);
+        }
+
+        window.deleteProduct = async function(productId) {
+            if(confirm("Admin/Owner Override: Are you sure you want to permanently delete this item from the database?")) {
+                try { await fetch(`${API_URL}/products/${productId}`, { method: 'DELETE' }); fetchProducts(); } 
+                catch (err) { console.error(err); }
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            renderProducts(products.filter(p => p.title.toLowerCase().includes(term)));
+        });
+
+        window.filterByCategory = function(category) {
+            currentView = category;
+            document.getElementById('sectionTitle').innerText = category === 'All' ? 'Fresh recommendations' : `${category} for sale`;
+            filteredProducts = category === 'All' ? [...products] : products.filter(p => p.category === category);
+            renderProducts(filteredProducts);
+        }
+
+        document.getElementById('sellBtn').addEventListener('click', () => {
+            if (!currentUser) return authModal.show();
+            const section = document.getElementById('postAdSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.getElementById('adForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const newProduct = {
+                title: document.getElementById('adTitle').value,
+                price: "₹ " + Number(document.getElementById('adPrice').value).toLocaleString('en-IN'),
+                category: document.getElementById('adCategory').value,
+                location: document.getElementById('adLocation').value,
+                sellerUpi: document.getElementById('adUpi').value,
+                image: document.getElementById('adImage').value || "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80",
+                description: document.getElementById('adDescription').value,
+                sellerId: currentUser.id,
+                sellerName: currentUser.name
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newProduct) });
+                if(response.ok) {
+                    document.getElementById('postAdSection').style.display = 'none';
+                    document.getElementById('adForm').reset();
+                    fetchProducts(); 
+                }
+            } catch (err) { console.error(err); }
+        });
+
+        window.openDetails = function(id) {
+            const p = products.find(prod => prod._id === id);
+            if(p && p.status !== "Sold") {
+                document.getElementById('modalImage').src = p.image;
+                document.getElementById('modalPrice').innerText = p.price;
+                document.getElementById('modalName').innerText = p.title;
+                document.getElementById('modalDescription').innerText = p.description;
+                document.getElementById('modalCategory').innerHTML = `<i class="fas fa-tag"></i> ${p.category}`;
+                document.getElementById('modalLocation').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${p.location}`;
+
+                const buyBtn = document.getElementById('buyBtn');
+                const loginToBuyBtn = document.getElementById('loginToBuyBtn');
+                
+                if (!currentUser) {
+                    buyBtn.style.display = 'none';
+                    loginToBuyBtn.style.display = 'block';
+                    loginToBuyBtn.onclick = () => { productModal.hide(); authModal.show(); };
+                } else if (currentUser.id === p.sellerId) {
+                    buyBtn.style.display = 'none';
+                    loginToBuyBtn.style.display = 'block';
+                    loginToBuyBtn.innerText = "You posted this ad";
+                    loginToBuyBtn.disabled = true;
+                } else {
+                    loginToBuyBtn.style.display = 'none';
+                    buyBtn.style.display = 'block';
+                    
+                    buyBtn.onclick = () => {
+                        productModal.hide();
+                        document.getElementById('upiItemName').innerText = p.title;
+                        document.getElementById('upiItemPrice').innerText = p.price;
+                        document.getElementById('upiSellerDetails').innerText = p.sellerUpi;
+                        document.getElementById('deliveryAddressConfirm').innerText = currentUser.address;
+                        document.getElementById('utrnInput').value = ''; 
+
+                        const priceNum = parseInt(p.price.replace(/[^0-9]/g, ''));
+                        const upiURI = `upi://pay?pa=${p.sellerUpi}&pn=${encodeURIComponent(p.sellerName)}&am=${priceNum}&cu=INR`;
+                        document.getElementById('upiQRCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiURI)}`;
+
+                        document.getElementById('confirmUpiBtn').onclick = async () => {
+                            const utrn = document.getElementById('utrnInput').value;
+                            if(utrn.length < 5) return alert("Please enter a valid Transaction ID after paying.");
+                            
+                            document.getElementById('confirmUpiBtn').innerText = "Verifying...";
+                            await fetch(`${API_URL}/products/${p._id}/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ buyerId: currentUser.id }) });
+
+                            alert("Payment Verified! Your order has been placed.");
+                            upiModal.hide();
+                            fetchProducts(); 
+                            document.getElementById('confirmUpiBtn').innerText = "Verify & Complete Purchase";
+                        };
+                        upiModal.show();
+                    };
+                }
+                productModal.show();
+            }
+        }
+
+        fetchProducts();
+    </script>
+</body>
+</html>
